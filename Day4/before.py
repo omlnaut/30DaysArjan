@@ -1,10 +1,10 @@
-from decimal import Decimal
 from dataclasses import dataclass
-from enum import StrEnum
+from decimal import Decimal
+from enum import Enum
 from typing import Iterable
 
 
-class OrderType(StrEnum):
+class OrderType(Enum):
     ONLINE = "online"
     IN_STORE = "in store"
 
@@ -30,49 +30,50 @@ class Email:
     sender: str
 
 
-def calculate_total_price(items: Iterable[Item]) -> Decimal:
+def calculate_total_price(
+    items: Iterable[Item], discount: Decimal | None = None
+) -> Decimal:
     total_price = Decimal(sum(item.price for item in items))
+    if discount is not None:
+        return total_price - (total_price * discount)
     return total_price
 
 
-def calculate_discounted_price(items: Iterable[Item], discount: Decimal) -> Decimal:
-    total_price = Decimal(sum(item.price for item in items))
-    discounted_price = total_price - (total_price * discount)
-    return discounted_price
-
-
 def generate_order_confirmation_email(order: Order) -> Email:
-    return Email(
-        body=f"Thank you for your order! Your order #{order.id} has been confirmed.",
-        subject="Order Confirmation",
-        recipient=order.customer_email,
-        sender="sales@webshop.com",
+    return create_shop_email(
+        order,
+        f"Thank you for your order! Your order #{order.id} has been confirmed.",
+        "Order Confirmation",
     )
 
 
 def generate_order_shipping_notification(order: Order) -> Email:
+    return create_shop_email(
+        order,
+        f"Good news! Your order #{order.id} has been shipped and is on its way.",
+        "Order Shipped",
+    )
+
+
+def create_shop_email(order: Order, body: str, subject: str) -> Email:
     return Email(
-        body=f"Good news! Your order #{order.id} has been shipped and is on its way.",
-        subject="Order Shipped",
+        body=body,
+        subject=subject,
         recipient=order.customer_email,
         sender="sales@webshop.com",
     )
 
 
-def process_online_order(order: Order) -> None:
-    # Logic to process an online order
-    print("Processing online order...")
+def process_order(order: Order) -> None:
+    print(f"Processing {order.type.value} order...")
     print(generate_order_confirmation_email(order))
-    print("Shipping the order...")
-    print(generate_order_shipping_notification(order))
-    print("Order processed successfully.")
 
+    if order.type == OrderType.ONLINE:
+        print("Shipping the order...")
+        print(generate_order_shipping_notification(order))
+    else:
+        print("Order ready for pickup.")
 
-def process_in_store_order(order: Order) -> None:
-    # Logic to process an in-store order
-    print("Processing in-store order...")
-    print(generate_order_confirmation_email(order))
-    print("Order ready for pickup.")
     print("Order processed successfully.")
 
 
@@ -90,16 +91,16 @@ def main() -> None:
     total_price = calculate_total_price(items)
     print("Total price:", total_price)
 
-    discounted_price = calculate_discounted_price(items, Decimal("0.1"))
+    discounted_price = calculate_total_price(items, discount=Decimal("0.1"))
     print("Discounted price:", discounted_price)
 
-    process_online_order(online_order)
+    process_order(online_order)
 
     in_store_order = Order(
         id=456, type=OrderType.IN_STORE, customer_email="john@gmail.com"
     )
 
-    process_in_store_order(in_store_order)
+    process_order(in_store_order)
 
 
 if __name__ == "__main__":
